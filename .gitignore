@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+.firecrawl/
+110學年度第2學期_數位邏輯_期中考_題目.pdf
