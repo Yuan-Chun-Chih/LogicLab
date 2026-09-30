@@ -4,6 +4,8 @@
 
 專案儲存庫：[Yuan-Chun-Chih/LogicLab](https://github.com/Yuan-Chun-Chih/LogicLab)。歡迎點亮我們的專案！
 
+線上體驗：[邏輯工坊](https://yuan-chun-chih.github.io/LogicLab/)。
+
 ## 啟動
 
 ```bash
@@ -11,7 +13,7 @@ npm install
 npm run dev
 ```
 
-開啟終端機顯示的本機網址（通常是 `http://localhost:5173/`）。
+開啟終端機顯示的本機網址（通常是 `http://localhost:5173/LogicLab/`）。
 
 ## 操作方式
 
