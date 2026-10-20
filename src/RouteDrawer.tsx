@@ -1,43 +1,80 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, ChevronDown, Home, Sparkles, X } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { ArrowRight, BookOpen, Check, ChevronDown, CircuitBoard, Home, Map, Sparkles, X } from 'lucide-react'
 import { challenges, getChallenges, modules, type ModuleId } from './content'
+import { FormulaReference, GateReference } from './LogicReference'
+
+export type DrawerView = 'route' | 'gates' | 'formulas'
+const views = [
+  { id: 'route', label: '選擇關卡', icon: Map },
+  { id: 'gates', label: '邏輯閘', icon: CircuitBoard },
+  { id: 'formulas', label: '常見公式', icon: BookOpen },
+] as const
 
 type RouteDrawerProps = {
   progress: Record<string, { completed: boolean }>
   selectedId: string
   inPlay: boolean
   freeMode: boolean
+  view: DrawerView
+  onViewChange: (view: DrawerView) => void
   onClose: () => void
   onHome: () => void
   onChallenge: (id: string) => void
   onFreeMode: () => void
 }
 
-export default function RouteDrawer({ progress, selectedId, inPlay, freeMode, onClose, onHome, onChallenge, onFreeMode }: RouteDrawerProps) {
+export default function RouteDrawer({ progress, selectedId, inPlay, freeMode, view, onViewChange, onClose, onHome, onChallenge, onFreeMode }: RouteDrawerProps) {
   const currentModule = challenges.find(item => item.id === selectedId)?.module
   const nextModule = challenges.find(item => !progress[item.id]?.completed)?.module
   const [expandedId, setExpandedId] = useState<ModuleId | null>(inPlay && !freeMode ? currentModule ?? 'gates' : nextModule ?? 'gates')
   const closeRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const completedCount = challenges.filter(item => progress[item.id]?.completed).length
   const completionPercent = Math.round(completedCount / challenges.length * 100)
 
-  useEffect(() => { closeRef.current?.focus() }, [])
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }) }
+  }, [])
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }) }, [view])
+
+  function trapFocus(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input, summary, [tabindex="0"]') ?? []).filter(element => element.getClientRects().length > 0)
+    const first = focusable[0]
+    const last = focusable.at(-1)
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+  }
+
+  function moveTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const next = event.key === 'ArrowRight' ? (index + 1) % views.length : event.key === 'ArrowLeft' ? (index + views.length - 1) % views.length : event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : -1
+    if (next < 0) return
+    event.preventDefault()
+    onViewChange(views[next].id)
+    document.getElementById(`drawer-tab-${views[next].id}`)?.focus()
+  }
 
   return <>
-    <button className="drawer-scrim" aria-label="關閉選擇關卡" onClick={onClose} />
-    <nav className="route-drawer quest-drawer" aria-label="選擇關卡">
+    <button className="drawer-scrim" aria-label="關閉側邊欄" tabIndex={-1} onClick={onClose} />
+    <nav ref={drawerRef} className="route-drawer quest-drawer" role="dialog" aria-modal="true" aria-label="學習工具側邊欄" onKeyDown={trapFocus}>
       <div className="drawer-head">
-        <div><span>MISSION SELECT</span><strong>選擇關卡</strong></div>
+        <div><span>LOGIC TOOLKIT</span><strong>學習工具</strong></div>
         <button ref={closeRef} type="button" onClick={onClose} aria-label="關閉選單"><X size={19} /></button>
       </div>
 
-      <div className="drawer-overview">
+      <div className="drawer-view-tabs" role="tablist" aria-label="側邊欄內容">{views.map(({ id, label, icon: Icon }, index) => <button type="button" role="tab" key={id} id={`drawer-tab-${id}`} aria-selected={view === id} aria-controls="drawer-content" tabIndex={view === id ? 0 : -1} onClick={() => onViewChange(id)} onKeyDown={event => moveTab(event, index)}><Icon size={15} />{label}</button>)}</div>
+
+      {view === 'route' && <><div className="drawer-overview">
         <div><span>探索進度</span><strong>{completedCount} <small>/ {challenges.length} 關</small></strong></div>
         <i><b style={{ width: `${completionPercent}%` }} /></i>
       </div>
-      <button className="drawer-home" onClick={onHome}><Home size={17} /> 返回首頁 <ArrowRight size={15} /></button>
+      <button className="drawer-home" onClick={onHome}><Home size={17} /> 返回首頁 <ArrowRight size={15} /></button></>}
 
-      <div className="drawer-scroll">
+      <div ref={scrollRef} id="drawer-content" className="drawer-scroll" role="tabpanel" aria-labelledby={`drawer-tab-${view}`} tabIndex={0}>
+        {view === 'gates' ? <GateReference /> : view === 'formulas' ? <FormulaReference /> : <>
         <div className="drawer-route-label"><span>學習路線</span><small>{modules.length} 個模組</small></div>
         {modules.map(item => {
           const tasks = getChallenges(item.id)
@@ -62,10 +99,10 @@ export default function RouteDrawer({ progress, selectedId, inPlay, freeMode, on
               })}
             </div>
           </details>
-        })}
+        })}</>}
       </div>
 
-      <div className="drawer-footer"><button className={`drawer-free ${inPlay && freeMode ? 'active' : ''}`} onClick={onFreeMode}><Sparkles size={17} /><span>自由接線沙盒<small>設計自己的電路</small></span><ArrowRight size={17} /></button></div>
+      <div className="drawer-footer">{view === 'route' ? <button className={`drawer-free ${inPlay && freeMode ? 'active' : ''}`} onClick={onFreeMode}><Sparkles size={17} /><span>自由接線沙盒<small>設計自己的電路</small></span><ArrowRight size={17} /></button> : <button className="drawer-free drawer-return" onClick={onClose}><ArrowRight size={17} /><span>{inPlay ? '返回目前作答' : '返回首頁'}<small>隨時開啟側邊欄，再次查閱</small></span></button>}</div>
     </nav>
   </>
 }

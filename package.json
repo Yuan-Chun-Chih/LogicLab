@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "smoke": "node scripts/smoke.mjs",
     "test:logic": "node scripts/advanced-smoke.mjs --logic-only",
-    "smoke:advanced": "node scripts/advanced-smoke.mjs"
+    "smoke:advanced": "node scripts/advanced-smoke.mjs",
+    "smoke:reference": "node scripts/reference-smoke.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.9.2",

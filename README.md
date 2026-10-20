@@ -18,6 +18,8 @@ npm run dev
 ## 操作方式
 
 - 首頁可從「學習路線」選擇模組，也能點擊示範電路的 A、B 觀察 AND 輸出。闖關時，左上角按鈕可展開選擇關卡側欄。
+- 側邊欄提供「選擇關卡／邏輯閘／常見公式」三個分頁。可隨時查閱 AND、OR、NOT、NAND、NOR、XOR、XNOR 與 D 正反器的符號、介紹與真值表，並操作獨立的輸入示範；查閱不會改變目前答案或電路。關閉後再次開啟，會留在上次的分頁。
+- 「常見公式」可搜尋布林定律、德摩根、NAND／NOR 轉換、加減法器、選擇器、正反器及 K-Map 規則。側邊欄支援 Esc 關閉、方向鍵切換分頁與鍵盤焦點循環。
 - 電路題可以從元件列拖入邏輯閘，或點選元件快速加入。每種閘使用對應的電路符號。
 - 連線可從來源接點拖到目的接點，也可依序點選來源、目的接點。邏輯閘右上角常駐小垃圾桶可直接刪除該閘；導線選取後可使用刪除按鈕。選取後也可按 Delete 或 Backspace。
 - 題目提供的輸入與輸出端也能個別拖曳。點擊 INPUT 元件內的 0／1 開關即可切換輸入，輸出結果顯示在 OUTPUT 元件內。
@@ -50,17 +52,21 @@ npm run build
 npm run test:logic
 npm run smoke
 npm run smoke:advanced
+npm run smoke:reference
 ```
 
 `smoke` 使用本機安裝的 Google Chrome，驗證答題與進度保存、電路求值、點選接線，以及桌面和手機版流程。
 
 `smoke:advanced` 驗證新增接線題的 11 組參考電路與錯接反例、NOR 三值邏輯、有效輸入、非同步清除、同時取樣，以及新增題型的桌面與手機作答流程。
 
+`smoke:reference` 驗證側邊欄的七種邏輯閘真值表、D 正反器的獨立示範、公式搜尋、鍵盤操作，以及查閱前後電路與學習進度保持一致。
+
 ## 實作結構
 
 - `src/content.ts`：模組、原有 24 道題目，以及整合後的 40 道題庫與接線詳解。
 - `src/advancedContent.ts`：16 道中高難度題目、參考真值表、時序測試與接線順序。
 - `src/AdvancedTaskBoard.tsx`：四變數卡諾圖、狀態表與十六進位事件作答。
+- `src/LogicReference.tsx`、`src/reference.ts`：側邊欄的邏輯閘互動介紹、真值表與可搜尋的常見公式。
 - `src/logic.ts`：邏輯閘與 D 正反器求值、真值表與自動檢核。
 - `src/GateSymbol.tsx`：AND、OR、XOR、NAND、NOR、NOT 與 D 正反器 SVG 符號。
 - `src/Workbench.tsx`：拖放元件、接線、個別刪除、視角限制及即時輸入。

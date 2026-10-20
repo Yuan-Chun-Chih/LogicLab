@@ -1006,3 +1006,69 @@ button:active:not(:disabled) { transform: translateY(0) scale(.98); }
 @media (prefers-reduced-motion: reduce) {
   .drawer-module-summary, .drawer-module-chevron, .drawer-level-arrow { transition: none; }
 }
+
+/* Reference tools share the drawer without interrupting the current workbench. */
+.drawer-view-tabs { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 14px 20px; padding: 4px; border: 1px solid #35526d; border-radius: 11px; background: #0c1e31; }
+.drawer-view-tabs button { min-width: 0; min-height: 38px; display: flex; justify-content: center; align-items: center; gap: 6px; padding: 5px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #a8c2d8; font-size: 11px; font-weight: 800; transition: background-color .16s ease, color .16s ease; }
+.drawer-view-tabs button:hover { color: #f0fcff; background: #203d54; }
+.drawer-view-tabs button[aria-selected="true"] { color: #d5fff0; border-color: #478f80; background: #1d534d; }
+.drawer-view-tabs button:focus-visible, .logic-reference :is(button, summary, input):focus-visible { outline: 2px solid #9ae3d3; outline-offset: 2px; }
+.quest-drawer .drawer-scroll[role="tabpanel"]:focus-visible { outline: 1px solid #648ca5; outline-offset: -2px; }
+.quest-drawer .drawer-scroll { overscroll-behavior: contain; }
+.logic-reference { padding: 0 1px 12px; color: #ccdeed; }
+.reference-gate-picker { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 15px; padding-bottom: 8px; background: #102338; }
+.reference-gate-picker button { min-height: 36px; padding: 5px; border: 1px solid #3d5d78; border-radius: 8px; background: #1b334d; color: #bcd4e9; font-size: 11px; font-weight: 800; transition: background-color .16s ease, border-color .16s ease; }
+.reference-gate-picker button:hover { border-color: #80bbcf; background: #27475f; }
+.reference-gate-picker button[aria-pressed="true"] { border-color: #74d5b7; color: #d4fff0; background: #23594d; }
+.reference-gate-guide { padding: 16px; border: 1px solid #3a5872; border-radius: 12px; background: #162c42; }
+.reference-gate-heading { display: flex; align-items: baseline; gap: 10px; }
+.reference-gate-heading h3 { margin: 0; color: #f1f8ff; font-size: 23px; }
+.reference-gate-heading span { color: #92d9ce; font-size: 12px; font-weight: 800; }
+.reference-gate-guide > p { margin: 9px 0 14px; color: #b9cfe2; font-size: 12px; line-height: 1.9; }
+.reference-demo { --reference-signal: #93b6ce; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 8px; border: 1px solid #375a75; border-radius: 11px; background: #0b1d30; }
+.reference-demo.is-high { --reference-signal: #6de2bd; border-color: #3a8c78; }
+.reference-demo-inputs { display: grid; gap: 6px; flex: none; width: 61px; }
+.reference-demo-inputs button { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 32px; padding: 5px 7px; border: 1px solid #587892; border-radius: 6px; background: #243c54; color: #c7dcec; font-size: 10px; }
+.reference-demo-inputs button b { font-size: 15px; }
+.reference-demo-inputs button.is-high { border-color: #63bda4; background: #185444; color: #b8ffe5; }
+.reference-demo .gate-svg { flex: 1; min-width: 0; max-width: 150px; height: auto; }
+.reference-demo .symbol-body { fill: #1c344a; stroke: var(--reference-signal); }
+.reference-demo .symbol-wire, .reference-demo .symbol-line { stroke: var(--reference-signal); }
+.reference-demo .port-wire.signal-high { stroke: #6de2bd; }
+.reference-demo .port-wire.signal-low { stroke: #93b6ce; }
+.reference-demo .symbol-value, .reference-demo text { fill: #e0f2ff; }
+.reference-demo-output { flex: none; display: grid; justify-items: center; gap: 3px; width: 39px; color: var(--reference-signal); }
+.reference-demo-output span { font-size: 11px; font-weight: 800; }
+.reference-demo-output strong { font-size: 27px; line-height: 1.2; }
+.reference-gate-guide .reference-demo-caption { margin: 7px 0 12px; color: #8baac3; font-size: 10px; }
+.reference-equation { margin: 5px 0; padding: 8px 10px; border: 1px solid #365572; border-radius: 7px; background: #10263c; color: #caf4e8; font-family: Consolas, monospace; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.reference-truth-table { width: 100%; margin-top: 14px; border-collapse: collapse; text-align: center; font-size: 12px; }
+.reference-truth-table caption { margin-bottom: 8px; color: #d6eafa; text-align: left; font-size: 12px; font-weight: 800; }
+.reference-truth-table th { background: #223c55; color: #a4c2db; }
+.reference-truth-table :is(th, td) { padding: 7px 5px; border: 1px solid #36536c; }
+.reference-truth-table tr.current td { background: #1f534a; color: #c8ffeb; font-weight: 800; }
+.reference-gate-guide .reference-tip { margin: 14px 0 0; padding: 10px; border-left: 2px solid #76c7b5; border-radius: 0 6px 6px 0; background: #203b4a; color: #c5e7e6; font-size: 11px; }
+.reference-search { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 7px; margin-bottom: 12px; padding: 9px 11px; border: 1px solid #4a6a84; border-radius: 9px; background: #10283d; color: #9ab9cf; }
+.reference-search:focus-within { border-color: #8ae0cd; }
+.reference-search input { width: 100%; min-width: 0; min-height: 24px; padding: 0; border: 0; background: transparent; color: #e0f1ff; font: inherit; font-size: 11px; }
+.reference-search input::placeholder { color: #8ba8c0; }
+.reference-search input:focus-visible { outline: none; }
+.reference-formula-group { margin-bottom: 8px; overflow: hidden; border: 1px solid #3b5872; border-radius: 10px; background: #172f45; }
+.reference-formula-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 10px 12px; color: #d6e8f7; font-size: 12px; font-weight: 800; list-style: none; cursor: pointer; }
+.reference-formula-group > summary::-webkit-details-marker { display: none; }
+.reference-formula-group > summary::after { content: '+'; color: #91cdbf; font-size: 18px; }
+.reference-formula-group[open] > summary { background: #203e53; }
+.reference-formula-group[open] > summary::after { content: '−'; }
+.reference-formula-group > div { padding: 0 12px; }
+.reference-formula-entry { padding: 12px 0; border-top: 1px solid #36526a; }
+.reference-formula-entry h3 { margin: 0 0 8px; color: #badedc; font-size: 11px; }
+.reference-formula-note { margin: 8px 0 0; color: #a8c1d4; font-size: 11px; line-height: 1.85; }
+.reference-empty { padding: 25px 10px; color: #b5cddd; font-size: 12px; line-height: 1.9; }
+@media (max-width: 390px) {
+  .drawer-view-tabs { margin-inline: 13px; }
+  .app .quest-drawer .drawer-scroll { padding-inline: 13px; }
+  .reference-gate-guide { padding: 12px; }
+  .reference-demo-inputs { width: 54px; }
+  .reference-demo-output { width: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .drawer-view-tabs button, .reference-gate-picker button { transition: none; } }

@@ -1,6 +1,6 @@
 import type { ComponentType, GateType, Signal } from './logic'
 
-type Props = { type: ComponentType; compact?: boolean; className?: string; inputSignals?: Record<string, Signal>; value?: Signal }
+type Props = { type: ComponentType | 'XNOR'; compact?: boolean; className?: string; inputSignals?: Record<string, Signal>; value?: Signal }
 const portClass = (value?: Signal) => value === 1 ? 'signal-high' : value === 0 ? 'signal-low' : value === 'X' ? 'signal-unknown' : ''
 
 export default function GateSymbol({ type, compact = false, className = '', inputSignals, value }: Props) {
@@ -8,7 +8,8 @@ export default function GateSymbol({ type, compact = false, className = '', inpu
   const isNot = gate === 'NOT'
   const isNand = gate === 'NAND'
   const isNor = gate === 'NOR'
-  const isOr = gate === 'OR' || gate === 'XOR' || isNor
+  const isXnor = type === 'XNOR'
+  const isOr = gate === 'OR' || gate === 'XOR' || isNor || isXnor
 
   if (type === 'DFF') {
     return <svg className={`gate-svg ${compact ? 'compact' : ''} ${className}`} viewBox="0 0 140 100" role="img" aria-label="D 正反器">
@@ -32,10 +33,10 @@ export default function GateSymbol({ type, compact = false, className = '', inpu
     </> : isOr ? <>
       <path className={`symbol-wire port-wire ${portClass(inputSignals?.a)}`} d="M0 30 H31" />
       <path className={`symbol-wire port-wire ${portClass(inputSignals?.b)}`} d="M0 70 H31" />
-      <path className="symbol-wire output-wire" d={`M${isNor ? 125 : 109} 50 H140`} />
+      <path className="symbol-wire output-wire" d={`M${isNor || isXnor ? 125 : 109} 50 H140`} />
       <path className="symbol-body" d="M25 13 C49 14 83 20 109 50 C83 80 49 86 25 87 C38 65 38 35 25 13 Z" />
-      {isNor && <circle className="symbol-body" cx="117" cy="50" r="8" />}
-      {gate === 'XOR' && <path className="symbol-line" d="M12 13 C25 35 25 65 12 87" />}
+      {(isNor || isXnor) && <circle className="symbol-body" cx="117" cy="50" r="8" />}
+      {(gate === 'XOR' || isXnor) && <path className="symbol-line" d="M12 13 C25 35 25 65 12 87" />}
     </> : <>
       <path className={`symbol-wire port-wire ${portClass(inputSignals?.a)}`} d="M0 30 H25" />
       <path className={`symbol-wire port-wire ${portClass(inputSignals?.b)}`} d="M0 70 H25" />

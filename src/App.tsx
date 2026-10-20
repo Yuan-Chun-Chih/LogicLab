@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, CircleHelp, CircuitBoard, Home, Lightbulb, Menu, Trophy, Volume2, VolumeX } from 'lucide-react'
 import GateSymbol from './GateSymbol'
 import HomePage from './HomePage'
-import RouteDrawer from './RouteDrawer'
+import RouteDrawer, { type DrawerView } from './RouteDrawer'
 import Workbench, { type WorkbenchHandle } from './Workbench'
 import AdvancedTaskBoard from './AdvancedTaskBoard'
 import { challenges, getChallenges, modules, wiringGuides, type Challenge, type ModuleId } from './content'
@@ -54,6 +54,7 @@ function App() {
   const [selectedId, setSelectedId] = useState('g1')
   const [freeMode, setFreeMode] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerView, setDrawerView] = useState<DrawerView>('route')
   const [answers, setAnswers] = useState<Answers>({})
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [soundEnabled, setSoundEnabled] = useState(loadSoundPreference)
@@ -162,7 +163,7 @@ function App() {
   return <div className={`app ${screen === 'play' ? 'in-play' : ''}`}>
     <header className="app-header"><div className="header-start"><button className="nav-trigger" onClick={() => setDrawerOpen(true)} aria-label="開啟學習路線"><Menu size={21} /></button><button className="logo-button" onClick={() => { setScreen('home'); setDrawerOpen(false) }}><span className="logo-mark"><CircuitBoard size={23} /></span><span className="logo-text"><strong>邏輯工坊</strong></span></button></div><div className="header-end"><div className="header-progress"><span>學習進度</span><strong>{completedCount} <small>/ {challenges.length}</small></strong><i><b style={{ width: `${completedCount / challenges.length * 100}%` }} /></i></div><button type="button" className="sound-toggle" onClick={toggleSound} aria-pressed={soundEnabled} aria-label={soundEnabled ? '關閉音效' : '開啟音效'} title={soundEnabled ? '關閉音效' : '開啟音效'}>{soundEnabled ? <Volume2 size={17} /> : <VolumeX size={17} />}</button>{screen === 'play' && <button className="home-link" onClick={() => setScreen('home')}><Home size={17} /> 首頁</button>}</div></header>
 
-    {drawerOpen && <RouteDrawer progress={progress} selectedId={selectedId} inPlay={screen === 'play'} freeMode={freeMode} onClose={() => setDrawerOpen(false)} onHome={() => { setScreen('home'); setDrawerOpen(false) }} onChallenge={openChallenge} onFreeMode={openFreeMode} />}
+    {drawerOpen && <RouteDrawer view={drawerView} onViewChange={setDrawerView} progress={progress} selectedId={selectedId} inPlay={screen === 'play'} freeMode={freeMode} onClose={() => setDrawerOpen(false)} onHome={() => { setScreen('home'); setDrawerOpen(false) }} onChallenge={openChallenge} onFreeMode={openFreeMode} />}
 
     {screen === 'home' ? <HomePage progress={progress} onOpenChallenge={openChallenge} onOpenModule={openModule} onOpenFreeMode={openFreeMode} /> : <main className="play-page">
       <div className="play-heading">
