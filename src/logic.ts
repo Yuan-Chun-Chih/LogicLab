@@ -2,12 +2,12 @@ import type { Edge, Node } from '@xyflow/react'
 
 export type Bit = 0 | 1
 export type Signal = Bit | 'X'
-export type GateType = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOT'
+export type GateType = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'NOT'
 export type ComponentType = GateType | 'DFF'
-export type CircuitGoal = 'and' | 'or' | 'xor' | 'nand-not' | 'xor-sop' | 'demorgan-nand' | 'half-adder' | 'mux' | 'parity3' | 'register' | 'register-reset' | 'toggle' | 'xor-nand' | 'full-adder' | 'majority'
+export type CircuitGoal = 'and' | 'or' | 'xor' | 'nand-not' | 'xor-sop' | 'demorgan-nand' | 'half-adder' | 'mux' | 'parity3' | 'register' | 'register-reset' | 'toggle' | 'xor-nand' | 'full-adder' | 'majority' | 'truth-table'
 export interface CircuitStep { inputs: Record<string, Bit>; expected: Record<string, Bit> }
-export interface CircuitSpec { goal: CircuitGoal; inputs: string[]; outputs: string[]; allowed: ComponentType[]; steps?: CircuitStep[] }
-export type CircuitNode = Node<{ label: string; gate?: GateType; value?: Signal; inputSignals?: Record<string, Signal>; onDelete?: () => void; onToggle?: () => void }>
+export interface CircuitSpec { goal: CircuitGoal; inputs: string[]; outputs: string[]; allowed: ComponentType[]; steps?: CircuitStep[]; truthTable?: Record<string, Signal>[]; maxComponents?: number }
+export type CircuitNode = Node<{ label: string; instance?: number; gate?: GateType; value?: Signal; inputSignals?: Record<string, Signal>; onDelete?: () => void; onToggle?: () => void }>
 export type CircuitResult = { values: Record<string, Signal>; ports: Record<string, Signal>; error?: string }
 export type CircuitDiagnostic = { inputs: Record<string, Bit>; output: string; expected: Bit; actual: Signal; step?: number; state?: Record<string, Bit>; clocks?: Record<string, Signal> }
 export type CheckResult = { ok: boolean; message: string; diagnostic?: CircuitDiagnostic }
@@ -18,7 +18,10 @@ export function gateValue(type: GateType, a: Signal, b: Signal = 'X'): Signal {
     const and: Signal = a === 0 || b === 0 ? 0 : a === 'X' || b === 'X' ? 'X' : 1
     return type === 'NAND' ? (and === 'X' ? 'X' : and === 0 ? 1 : 0) : and
   }
-  if (type === 'OR') return a === 1 || b === 1 ? 1 : a === 'X' || b === 'X' ? 'X' : 0
+  if (type === 'OR' || type === 'NOR') {
+    const or: Signal = a === 1 || b === 1 ? 1 : a === 'X' || b === 'X' ? 'X' : 0
+    return type === 'NOR' ? (or === 'X' ? 'X' : or === 0 ? 1 : 0) : or
+  }
   if (a === 'X' || b === 'X') return 'X'
   return a === b ? 0 : 1
 }
@@ -81,9 +84,13 @@ export function advanceCircuit(nodes: CircuitNode[], edges: Edge[], inputs: Reco
   return { state: nextState, clocks, result: evaluateCircuit(nodes, edges, inputs, nextState) }
 }
 
-export function expectedCircuitOutput(goal: CircuitGoal, inputs: Record<string, Bit>): Record<string, Bit> {
+export function expectedCircuitOutput(spec: CircuitSpec, inputs: Record<string, Bit>): Record<string, Signal> {
+  if (spec.truthTable) {
+    const index = spec.inputs.reduce((value, name) => value * 2 + inputs[name], 0)
+    return spec.truthTable[index] ?? {}
+  }
   const { A = 0, B = 0, C = 0, CI = 0, SEL = 0 } = inputs
-  switch (goal) {
+  switch (spec.goal) {
     case 'and': return { Y: (A & B) as Bit }
     case 'or': return { Y: (A | B) as Bit }
     case 'xor': return { Y: (A ^ B) as Bit }
@@ -114,6 +121,7 @@ export function getTruthTable(nodes: CircuitNode[], edges: Edge[], inputs: strin
 export function checkCircuit(nodes: CircuitNode[], edges: Edge[], spec: CircuitSpec): CheckResult {
   const components = nodes.filter(node => node.type === 'gate' || node.type === 'dff')
   if (!components.length) return { ok: false, message: '先把元件加入工作台，並完成輸入與輸出的連線。' }
+  if (components.length > (spec.maxComponents ?? 8)) return { ok: false, message: `本關最多使用 ${spec.maxComponents ?? 8} 個元件。` }
   const invalid = components.find(node => !spec.allowed.includes(node.type === 'dff' ? 'DFF' : node.data.gate!))
   if (invalid) return { ok: false, message: `本關不能使用 ${invalid.type === 'dff' ? 'D 正反器' : invalid.data.gate}。請查看可用元件。` }
   if (spec.steps) {
@@ -138,11 +146,15 @@ export function checkCircuit(nodes: CircuitNode[], edges: Edge[], spec: CircuitS
   for (const vector of vectors) {
     const result = evaluateCircuit(nodes, edges, vector)
     if (result.error) return { ok: false, message: result.error }
-    const expected = expectedCircuitOutput(spec.goal, vector)
+    const expected = expectedCircuitOutput(spec, vector)
     for (const output of spec.outputs) {
       const actual = result.values[output] ?? 'X'
-      if (actual !== expected[output]) return { ok: false, message: `輸入 ${spec.inputs.map(name => `${name}=${vector[name]}`).join('、')} 時，${output} 應為 ${expected[output]}，目前為 ${actual}。`, diagnostic: { inputs: vector, output, expected: expected[output], actual } }
+      if (expected[output] === 'X') continue
+      const target = expected[output]
+      if (target !== 0 && target !== 1) return { ok: false, message: '本關目標資料不完整，請重新載入頁面。' }
+      if (actual !== target) return { ok: false, message: `輸入 ${spec.inputs.map(name => `${name}=${vector[name]}`).join('、')} 時，${output} 應為 ${target}，目前為 ${actual}。`, diagnostic: { inputs: vector, output, expected: target, actual } }
     }
   }
-  return { ok: true, message: `全部 ${vectors.length} 組輸入通過！電路功能正確。` }
+  const ignored = vectors.filter(vector => spec.outputs.every(output => expectedCircuitOutput(spec, vector)[output] === 'X')).length
+  return { ok: true, message: ignored ? `全部 ${vectors.length - ignored} 組有效輸入通過！另 ${ignored} 組為無關項，不限制輸出。` : `全部 ${vectors.length} 組輸入通過！電路功能正確。` }
 }

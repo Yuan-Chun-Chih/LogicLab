@@ -13,14 +13,14 @@ const signalClass = (value: Signal) => value === 1 ? 'signal-high' : value === 0
 const signalStroke = (value: Signal) => value === 1 ? 'var(--signal-high)' : value === 0 ? 'var(--signal-low)' : 'var(--signal-unknown)'
 const withoutSignalClass = (value?: string) => (value ?? '').replace(/\bsignal-(?:high|low|unknown)\b/g, '').trim()
 const edgeTypes = { signal: SignalEdge }
-const MAX_COMPONENTS = 8
+const DEFAULT_MAX_COMPONENTS = 8
 const DESKTOP_NODE_EXTENT: CoordinateExtent = [[0, 0], [860, 620]]
 const MOBILE_NODE_EXTENT: CoordinateExtent = [[0, 0], [580, 980]]
 const DESKTOP_VIEW_EXTENT: CoordinateExtent = [[-70, -70], [1010, 750]]
 const MOBILE_VIEW_EXTENT: CoordinateExtent = [[-45, -45], [710, 1100]]
 type Snapshot = { nodes: CircuitNode[]; edges: WorkbenchEdge[]; inputs: Record<string, Bit>; state: Record<string, Bit>; clocks: Record<string, Signal>; truthOpen: boolean }
 type WalkthroughStatus =
-  | { kind: 'step'; index: number; total: number; inputs: Record<string, Bit>; passed: boolean; expected: Record<string, Bit>; actual: Record<string, Signal> }
+  | { kind: 'step'; index: number; total: number; inputs: Record<string, Bit>; passed: boolean; expected: Record<string, Signal>; actual: Record<string, Signal> }
   | { kind: 'done'; passedCount: number; total: number; failed: boolean }
   | { kind: 'stopped' }
 
@@ -41,7 +41,7 @@ function OutputNode({ data }: { data: CircuitNode['data'] }) {
 
 function GateNode({ data }: { data: CircuitNode['data'] }) {
   const type = data.gate ?? 'AND'
-  return <div className="symbol-node">{data.onDelete && <button type="button" className="node-remove-icon nodrag nopan" onClick={event => { event.stopPropagation(); data.onDelete?.() }} aria-label={`刪除 ${type} 元件`}><Trash2 size={13} /></button>}<GateSymbol type={type} inputSignals={data.inputSignals} value={data.value ?? 'X'} /><span className="symbol-caption">{type}</span>
+  return <div className="symbol-node">{data.onDelete && <button type="button" className="node-remove-icon nodrag nopan" onClick={event => { event.stopPropagation(); data.onDelete?.() }} aria-label={`刪除 ${type} 元件`}><Trash2 size={13} /></button>}<GateSymbol type={type} inputSignals={data.inputSignals} value={data.value ?? 'X'} /><span className="symbol-caption">{type}{data.instance && <small className="component-instance">#{data.instance}</small>}</span>
     <Handle id="a" type="target" position={Position.Left} style={{ top: type === 'NOT' ? '50%' : '30%' }} className={signalClass(data.inputSignals?.a ?? 'X')} aria-label={`${type} 輸入 A`} />
     {type !== 'NOT' && <Handle id="b" type="target" position={Position.Left} style={{ top: '70%' }} className={signalClass(data.inputSignals?.b ?? 'X')} aria-label={`${type} 輸入 B`} />}
     <Handle id="out" type="source" position={Position.Right} className={signalClass(data.value ?? 'X')} aria-label={`${type} 輸出`} />
@@ -49,7 +49,7 @@ function GateNode({ data }: { data: CircuitNode['data'] }) {
 }
 
 function DffNode({ data }: { data: CircuitNode['data'] }) {
-  return <div className="symbol-node dff-node">{data.onDelete && <button type="button" className="node-remove-icon nodrag nopan" onClick={event => { event.stopPropagation(); data.onDelete?.() }} aria-label="刪除 D 正反器元件"><Trash2 size={13} /></button>}<GateSymbol type="DFF" inputSignals={data.inputSignals} value={data.value ?? 'X'} /><span className="symbol-caption">D 正反器</span>
+  return <div className="symbol-node dff-node">{data.onDelete && <button type="button" className="node-remove-icon nodrag nopan" onClick={event => { event.stopPropagation(); data.onDelete?.() }} aria-label="刪除 D 正反器元件"><Trash2 size={13} /></button>}<GateSymbol type="DFF" inputSignals={data.inputSignals} value={data.value ?? 'X'} /><span className="symbol-caption">D 正反器{data.instance && <small className="component-instance">#{data.instance}</small>}</span>
     <Handle id="d" type="target" position={Position.Left} style={{ top: '24%' }} className={signalClass(data.inputSignals?.d ?? 'X')} aria-label="D 資料輸入" />
     <Handle id="clk" type="target" position={Position.Left} style={{ top: '50%' }} className={signalClass(data.inputSignals?.clk ?? 'X')} aria-label="CLK 時脈輸入" />
     <Handle id="rst" type="target" position={Position.Left} style={{ top: '76%' }} className={data.inputSignals?.rst === undefined ? 'signal-optional' : signalClass(data.inputSignals.rst)} aria-label="RST 重置輸入" />
@@ -83,6 +83,7 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
   const nodeExtent = compact ? MOBILE_NODE_EXTENT : DESKTOP_NODE_EXTENT
   const translateExtent = compact ? MOBILE_VIEW_EXTENT : DESKTOP_VIEW_EXTENT
   const componentCount = nodes.filter(node => node.type === 'gate' || node.type === 'dff').length
+  const maxComponents = spec.maxComponents ?? DEFAULT_MAX_COMPONENTS
 
   const snapshot = (): Snapshot => ({
     nodes: nodes.map(node => ({ ...node, position: { ...node.position }, data: { ...node.data } })),
@@ -197,23 +198,25 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
   const addComponent = useCallback((type: ComponentType, position?: { x: number; y: number }) => {
     if (walkthroughActive) return
     if (!spec.allowed.includes(type)) return
-    if (componentCount >= MAX_COMPONENTS) { setNotice(`工作台最多放 ${MAX_COMPONENTS} 個元件。可先刪除不需要的元件。`); return }
+    if (componentCount >= maxComponents) { setNotice(`本關最多放 ${maxComponents} 個元件。可先刪除不需要的元件。`); return }
     recordHistory()
     setNodes(current => {
       const count = current.filter(node => node.type === 'gate' || node.type === 'dff').length
       const compact = window.innerWidth <= 1000
-      const columns = compact ? 1 : 2
+      const expanded = maxComponents > DEFAULT_MAX_COMPONENTS
+      const columns = expanded ? compact ? 2 : 3 : compact ? 1 : 2
       const autoPosition = spec.goal === 'toggle' && count === 1
         ? { x: compact ? 205 : 440, y: compact ? 180 : 245 }
-        : { x: (compact ? 205 : 200) + (count % columns) * 240, y: (compact ? 42 : 65) + Math.floor(count / columns) * (compact ? 115 : 140) }
+        : { x: (compact ? expanded ? 170 : 205 : 200) + (count % columns) * (expanded ? compact ? 155 : 170 : 240), y: (compact ? 42 : 40) + Math.floor(count / columns) * (compact ? expanded ? 145 : 115 : 140) }
       const rawPosition = position ?? autoPosition
       const nextPosition = { x: Math.max(nodeExtent[0][0], Math.min(rawPosition.x, nodeExtent[1][0] - 140)), y: Math.max(nodeExtent[0][1], Math.min(rawPosition.y, nodeExtent[1][1] - 100)) }
-      return [...current, { id: `component-${crypto.randomUUID()}`, type: type === 'DFF' ? 'dff' : 'gate', position: nextPosition, data: { label: type, gate: type === 'DFF' ? undefined : type as GateType } }]
+      const instance = Math.max(0, ...current.map(node => node.data.instance ?? 0)) + 1
+      return [...current, { id: `component-${crypto.randomUUID()}`, type: type === 'DFF' ? 'dff' : 'gate', position: nextPosition, data: { label: type, instance, gate: type === 'DFF' ? undefined : type as GateType } }]
     })
     setNotice(`${type === 'DFF' ? 'D 正反器' : type + ' 閘'}已加入畫布。`)
     soundManager.playConnect()
     onEdit?.()
-  }, [spec.allowed, spec.goal, setNodes, onEdit, nodeExtent, componentCount, nodes, edges, inputs, state, clocks, truthOpen, walkthroughActive])
+  }, [spec.allowed, spec.goal, maxComponents, setNodes, onEdit, nodeExtent, componentCount, nodes, edges, inputs, state, clocks, truthOpen, walkthroughActive])
 
   const onConnect = useCallback((connection: Connection) => {
     if (walkthroughActive) return
@@ -317,8 +320,8 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
     const backup = { inputs: { ...inputs }, state: { ...state }, clocks: { ...clocks } }
     walkthroughBackupRef.current = backup
     setDiagnostic(null); setWalkthroughStatus(null); setWalkthroughActive(true)
-    let simulationState = { ...state }
-    let simulationClocks = { ...clocks }
+    let simulationState: Record<string, Bit> = spec.steps ? {} : { ...state }
+    let simulationClocks: Record<string, Signal> = spec.steps ? Object.fromEntries(nodes.filter(node => node.type === 'dff').map(node => [node.id, 0])) : { ...clocks }
     let passedCount = 0
     let firstFailure: { diagnostic: CircuitDiagnostic; state: Record<string, Bit>; clocks: Record<string, Signal> } | null = null
     const rows = spec.steps?.map(step => step.inputs) ?? getInputVectors(spec.inputs)
@@ -333,13 +336,14 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
         simulationClocks = advanced.clocks
         result = advanced.result
       } else result = evaluateCircuit(nodes, edges, vector, simulationState)
-      const expected = spec.steps?.[index]?.expected ?? expectedCircuitOutput(spec.goal, vector)
+      const expected = spec.steps?.[index]?.expected ?? expectedCircuitOutput(spec, vector)
       const actual = Object.fromEntries(spec.outputs.map(output => [output, result.values[output] ?? 'X'])) as Record<string, Signal>
-      const rowPassed = !result.error && spec.outputs.every(output => actual[output] === expected[output])
+      const rowPassed = !result.error && spec.outputs.every(output => expected[output] === 'X' || actual[output] === expected[output])
       if (rowPassed) passedCount += 1
       else if (!firstFailure) {
-        const output = spec.outputs.find(name => actual[name] !== expected[name]) ?? spec.outputs[0]
-        firstFailure = { diagnostic: { inputs: vector, output, expected: expected[output] ?? 0, actual: actual[output] ?? 'X', step: spec.steps ? index + 1 : undefined, state: { ...simulationState }, clocks: { ...simulationClocks } }, state: { ...simulationState }, clocks: { ...simulationClocks } }
+        const output = spec.outputs.find(name => expected[name] !== 'X' && actual[name] !== expected[name]) ?? spec.outputs[0]
+        const target = expected[output]
+        firstFailure = { diagnostic: { inputs: vector, output, expected: target === 1 ? 1 : 0, actual: actual[output] ?? 'X', step: spec.steps ? index + 1 : undefined, state: { ...simulationState }, clocks: { ...simulationClocks } }, state: { ...simulationState }, clocks: { ...simulationClocks } }
       }
       setInputs(vector); setState(simulationState); setClocks(simulationClocks)
       setWalkthroughStatus({ kind: 'step', index, total: rows.length, inputs: vector, passed: rowPassed, expected, actual })
@@ -363,8 +367,8 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
 
   return <div className="workbench">
     <div className="workbench-toolbar">
-      <div className="toolbox-label"><Grip size={17} /><span>元件列 <small>{componentCount}/{MAX_COMPONENTS}</small></span></div>
-      <div className="toolbox-items">{spec.allowed.map(type => <button key={type} draggable={!walkthroughActive && componentCount < MAX_COMPONENTS} disabled={walkthroughActive || componentCount >= MAX_COMPONENTS} onDragStart={event => { event.dataTransfer.setData('application/logiclab', type); event.dataTransfer.effectAllowed = 'move' }} onClick={() => addComponent(type)} className="palette-item" aria-label={`加入 ${type === 'DFF' ? 'D 正反器' : type + ' 閘'}`}><GateSymbol type={type} compact /><span>{type}</span></button>)}</div>
+      <div className="toolbox-label"><Grip size={17} /><span>元件列 <small>{componentCount}/{maxComponents}</small></span></div>
+      <div className="toolbox-items">{spec.allowed.map(type => <button key={type} draggable={!walkthroughActive && componentCount < maxComponents} disabled={walkthroughActive || componentCount >= maxComponents} onDragStart={event => { event.dataTransfer.setData('application/logiclab', type); event.dataTransfer.effectAllowed = 'move' }} onClick={() => addComponent(type)} className="palette-item" aria-label={`加入 ${type === 'DFF' ? 'D 正反器' : type + ' 閘'}`}><GateSymbol type={type} compact /><span>{type}</span></button>)}</div>
       <div className="toolbar-actions">
         <div className="history-actions"><button type="button" onClick={undo} disabled={walkthroughActive || !historyCounts.undo} aria-label="復原" title="復原 Ctrl+Z"><Undo2 size={16} /><span>復原</span></button><button type="button" onClick={redo} disabled={walkthroughActive || !historyCounts.redo} aria-label="重做" title="重做 Ctrl+Shift+Z"><Redo2 size={16} /><span>重做</span></button></div>
         <button type="button" className={`walkthrough-action ${walkthroughActive ? 'active' : ''}`} onClick={runWalkthrough} aria-label={walkthroughActive ? '停止逐列演示' : '逐列演示'} title={walkthroughActive ? '停止演示' : '逐列觀察輸入組合'}>{walkthroughActive ? <><Square size={15} /><span>停止演示</span></> : <><Play size={15} /><span>逐列演示</span></>}</button>
@@ -374,7 +378,7 @@ const Inner = forwardRef<WorkbenchHandle, Props>(function Inner({ spec, freeMode
     </div>
     {diagnostic && <div className="diagnostic-panel" role="status"><strong>{diagnostic.step ? `時序第 ${diagnostic.step} 步` : '第一組失敗輸入'}</strong><span>{spec.inputs.map(name => `${name}=${diagnostic.inputs[name]}`).join(' · ')}</span><span>預期 <b>{diagnostic.output}={diagnostic.expected}</b></span><span>實際 <b>{diagnostic.output}={diagnostic.actual}</b></span></div>}
     {walkthroughStatus && <div className={`walkthrough-banner ${walkthroughStatus.kind === 'step' ? walkthroughStatus.passed ? 'pass' : 'fail' : walkthroughStatus.kind === 'done' ? walkthroughStatus.failed ? 'fail' : 'pass' : 'stopped'}`} role="status" aria-live="polite">
-      {walkthroughStatus.kind === 'step' && <><strong>逐列演示 · {walkthroughStatus.index + 1} / {walkthroughStatus.total}</strong><span>{spec.inputs.map(name => `${name}=${walkthroughStatus.inputs[name]}`).join(' · ')}</span><span>預期 {spec.outputs.map(name => `${name}=${walkthroughStatus.expected[name]}`).join(' · ')}</span><span>實際 {spec.outputs.map(name => `${name}=${walkthroughStatus.actual[name]}`).join(' · ')}</span><b>{walkthroughStatus.passed ? '符合' : '不符合'}</b></>}
+      {walkthroughStatus.kind === 'step' && <><strong>逐列演示 · {walkthroughStatus.index + 1} / {walkthroughStatus.total}</strong><span>{spec.inputs.map(name => `${name}=${walkthroughStatus.inputs[name]}`).join(' · ')}</span><span>預期 {spec.outputs.map(name => `${name}=${walkthroughStatus.expected[name] === 'X' ? '不限（無關項）' : walkthroughStatus.expected[name]}`).join(' · ')}</span><span>實際 {spec.outputs.map(name => `${name}=${walkthroughStatus.actual[name]}`).join(' · ')}</span><b>{walkthroughStatus.passed ? '符合' : '不符合'}</b></>}
       {walkthroughStatus.kind === 'done' && <><strong>{walkthroughStatus.failed ? '演示已完成，停在第一組失敗輸入' : '逐列演示完成'}</strong><span>{walkthroughStatus.passedCount} / {walkthroughStatus.total} 組符合</span></>}
       {walkthroughStatus.kind === 'stopped' && <><strong>逐列演示已停止</strong><span>已還原演示前的輸入狀態。</span></>}
     </div>}

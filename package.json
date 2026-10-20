@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "test:logic": "node scripts/advanced-smoke.mjs --logic-only",
+    "smoke:advanced": "node scripts/advanced-smoke.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.9.2",

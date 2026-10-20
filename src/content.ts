@@ -1,4 +1,5 @@
 import type { CircuitSpec } from './logic'
+import { advancedChallenges, advancedWiringGuides } from './advancedContent'
 
 export type ModuleId = 'gates' | 'boolean' | 'combo' | 'sequential' | 'sandbox'
 export type ChallengeKind = 'choice' | 'bits' | 'kmap' | 'circuit'
@@ -16,6 +17,10 @@ export interface Challenge {
   circuit?: CircuitSpec
   hint: string
   explanation: string
+  difficulty?: '中階' | '高階'
+  source?: string
+  kmap?: { variables: string[]; minterms: number[]; dontCares: number[] }
+  table?: { givenColumns: string[]; answerColumns: string[]; rows: string[][]; answerOptions?: string[] }
 }
 
 export interface LessonModule {
@@ -64,7 +69,7 @@ export const modules: LessonModule[] = [
   },
 ]
 
-export const challenges: Challenge[] = [
+const foundationChallenges: Challenge[] = [
   { id: 'g1', module: 'gates', title: '預測 XOR 輸出', subtitle: '01 · 單一步驟', kind: 'choice', prompt: 'A = 1、B = 0 時，XOR 閘的輸出是多少？', options: ['0', '1', 'X（未知）'], answer: 1, hint: 'XOR 在兩個輸入「不同」時輸出 1。', explanation: 'A 與 B 分別是 1 和 0，兩者不同，因此 1 ⊕ 0 = 1。' },
   { id: 'g2', module: 'gates', title: '辨認神祕邏輯閘', subtitle: '02 · 真值表', kind: 'choice', prompt: '下方真值表描述哪一種邏輯閘？', options: ['AND', 'OR', 'XOR', 'NAND'], answer: 3, hint: '只有 A、B 都是 1 時輸出 0。它是 AND 再反相。', explanation: 'AND 只在 11 時輸出 1；將 AND 的結果反相，就得到 00、01、10 為 1，11 為 0 的 NAND。' },
   { id: 'g3', module: 'gates', title: '接出 AND 閘', subtitle: '03 · 接線闖關', kind: 'circuit', prompt: '拖入 AND 閘，讓 Y 只有在 A、B 都為 1 時亮起。', hint: 'A 與 B 各接到 AND 的一個輸入，AND 的輸出接到 Y。', explanation: 'AND 的輸出依序是 00→0、01→0、10→0、11→1。', circuit: { goal: 'and', inputs: ['A', 'B'], outputs: ['Y'], allowed: ['AND'] } },
@@ -108,10 +113,13 @@ export const challenges: Challenge[] = [
   { id: 'sb4', module: 'sandbox', title: '三人投票多數決', subtitle: '04 · 三輸入設計', kind: 'circuit', prompt: 'A、B、C 是三票；至少兩票為 1 時讓 Y=1。只能用 AND 與 OR。', hint: 'Y=AB+AC+BC。先做三種兩兩配對，再把結果合併。', explanation: '000、001、010、100 輸出 0；011、101、110、111 輸出 1。', circuit: { goal: 'majority', inputs: ['A', 'B', 'C'], outputs: ['Y'], allowed: ['AND', 'OR'] } },
 ]
 
+export const challenges: Challenge[] = modules.flatMap(module => [...foundationChallenges, ...advancedChallenges].filter(challenge => challenge.module === module.id))
+
 export const getChallenges = (module: ModuleId) => challenges.filter(challenge => challenge.module === module)
 
 // Each guide describes one valid circuit. Equivalent circuits are also accepted by the checker.
 export const wiringGuides: Record<string, string[]> = {
+  ...advancedWiringGuides,
   g3: ['加入一個 AND 閘。', '將 A 接到 AND 的 A 輸入，B 接到 B 輸入。', '將 AND 的輸出接到 Y。測試時，只有 A、B 都是 1，Y 才是 1。'],
   g4: ['加入一個 NAND 閘。', '把 A 的輸出分別接到 NAND 的 A、B 兩個輸入。', '將 NAND 的輸出接到 Y。因為 A·A=A，反相後便是 ¬A。'],
   g5: ['加入一個 OR 閘。', '將 A、B 分別接到 OR 的兩個輸入。', '將 OR 的輸出接到 Y；只要任一輸入為 1，Y 就會是 1。'],

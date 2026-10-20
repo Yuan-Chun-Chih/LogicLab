@@ -56,6 +56,7 @@ export default function RouteDrawer({ progress, selectedId, inPlay, freeMode, on
                 return <button key={task.id} className={`drawer-level ${active ? 'active' : ''}`} onClick={() => onChallenge(task.id)} aria-current={active ? 'step' : undefined}>
                   <span className={`drawer-level-index ${complete ? 'done' : ''}`}>{complete ? <Check size={13} /> : index + 1}</span>
                   <span className="drawer-level-title">{task.title}</span>
+                  {task.difficulty && <small className={`difficulty-tag ${task.difficulty === '高階' ? 'hard' : ''}`}>{task.difficulty}</small>}
                   {active ? <small className="drawer-level-current">目前</small> : <ArrowRight className="drawer-level-arrow" size={14} />}
                 </button>
               })}
